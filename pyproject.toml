@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "openedu-builder"
+version = "0.1.0"
+description = ""
+authors = ["Vlad Nastase <vladdnastase@gmail.com>"]
+readme = "README.md"
+packages = [{include = "openedu_builder"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+PyYAML = "^6.0"
+Jinja2 = "^3.1.2"
+
+[tool.poetry.scripts]
+oe_builder = 'openedu_builder.main:main'
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^22.6.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
