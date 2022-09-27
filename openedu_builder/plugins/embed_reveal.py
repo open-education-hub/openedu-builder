@@ -41,22 +41,6 @@ class EmbedRevealPlugin(Plugin):
                 else f"{name}.{self.config['extension']}"
             )
             with open(os.path.join(output_dir, filename), "w") as f:
-                f.write(template.render(**self.template_params, deck_location=location))
+                f.write(template.render(**self.template_params, deck_location=location, title=name))
 
-            log.info(
-                f"""Created {filename} in {output_dir}"""
-            )
-
-        # command = []
-        # log.info(f"Running command {' '.join(command)}")
-
-        # proc = subprocess.run(command, capture_output=True)
-
-        # if proc.returncode != 0:
-        #     log.error(f"Command failed with code {proc.returncode}")
-        #     log.error(f"STDOUT: \n{proc.stdout.decode()}")
-        #     log.error(f"STDERR: \n{proc.stderr.decode()}")
-        #     raise PluginRunError("Command execution failed")
-
-        # log.info(f"Command finished with code {proc.returncode}")
-        # log.info(f"Command output: \n{proc.stdout.decode()}")
+            log.info(f"""Created {filename} in {output_dir}""")
