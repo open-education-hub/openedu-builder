@@ -1,0 +1,84 @@
+// @ts-check
+// Note: type annotations allow type checking and IDEs autocompletion
+
+const lightCodeTheme = require('prism-react-renderer/themes/github');
+const darkCodeTheme = require('prism-react-renderer/themes/dracula');
+
+/** @type {import('@docusaurus/types').Config} */
+const config = {
+  {% for key, value in config_meta.items() %}{{ key }}: '{{ value }}',
+  {% endfor -%}
+
+  presets: [
+    [
+      'classic',
+      /** @type {import('@docusaurus/preset-classic').Options} */
+      ({
+        docs: {
+          {%- if docs_only %}
+          routeBasePath: '/',
+          {% endif -%}
+          sidebarPath: require.resolve('./sidebars.js'),
+        },
+        blog: false,
+        theme: {
+          customCss: require.resolve('./src/css/custom.css'),
+        },
+      }),
+    ],
+  ],
+
+  themeConfig:
+    /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
+    ({
+      navbar: {
+        title: '{{ course_name }}',
+        logo: {
+          alt: 'Logo',
+          {% if logo %}src: '{{ logo }}',{% else %}src: 'img/logo.svg'{% endif %}
+          {% if logo_dark %}srcDark: '{{ logo_dark }}',{% endif %}
+        },
+        items: [
+          /* {
+            type: 'doc',
+            docId: 'intro',
+            position: 'left',
+            label: 'Intro',
+          }, */
+          {% for category in categories %}{
+            to: '/{% if not docs_only %}docs/{% endif %}{{ category }}',
+            label: '{{ category }}',
+            position: 'left',
+          },
+          {% endfor %}
+        ],
+      },
+      footer: {
+        style: 'dark',
+        links: [
+          {
+            title: 'Community',
+            items: [
+              {% for name, url in config_socials.items() %}{
+                label: '{{ name }}',
+                href: '{{ url }}',
+              },
+              {% endfor %}
+            ],
+          },
+        ],
+        copyright: `Copyright © ${new Date().getFullYear()} {{ copyright_string }}`,
+      },
+      prism: {
+        theme: lightCodeTheme,
+        darkTheme: darkCodeTheme,
+      },
+      docs: {
+        sidebar: {
+          hideable: true,
+        }
+      }
+    }),
+};
+
+module.exports = config;
