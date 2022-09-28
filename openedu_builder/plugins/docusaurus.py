@@ -36,6 +36,7 @@ class DocusaurusPlugin(Plugin):
             self.course_name,
             "classic",
         ]
+        self.docs_only = config.get("docs_only", True)
 
         self.build_command = ["npm", "run", "build"]
 
@@ -46,7 +47,6 @@ class DocusaurusPlugin(Plugin):
 
         self.config_template_args = self._parse_config_options()
 
-        self.docs_only = config.get("docs_only", True)
 
         if config.get("init_command") is not None:
             self.init_command = config["init_command"]
