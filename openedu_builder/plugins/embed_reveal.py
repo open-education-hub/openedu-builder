@@ -1,8 +1,8 @@
 import logging
 import os
-from jinja2 import Environment, PackageLoader
 from typing import Any, Mapping
 
+from jinja2 import Environment, PackageLoader
 from openedu_builder.plugins.plugin import Plugin, PluginRunError
 
 log = logging.getLogger(__name__)
@@ -32,6 +32,7 @@ class EmbedRevealPlugin(Plugin):
         template = env.get_template(f"{self.template}.jinja2")
 
         for name, location in self.config["build"].items():
+            # self.output_dir is absolute
             output_dir = os.path.join(self.output_dir, name)
             os.makedirs(output_dir, exist_ok=True)
 
@@ -41,6 +42,10 @@ class EmbedRevealPlugin(Plugin):
                 else f"{name}.{self.config['extension']}"
             )
             with open(os.path.join(output_dir, filename), "w") as f:
-                f.write(template.render(**self.template_params, deck_location=location, title=name))
+                f.write(
+                    template.render(
+                        **self.template_params, deck_location=location, title=name
+                    )
+                )
 
             log.info(f"""Created {filename} in {output_dir}""")

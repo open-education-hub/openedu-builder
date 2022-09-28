@@ -1,17 +1,18 @@
 import logging
 import os
-import yaml
 import sys
-import openedu_builder.plugins
-
-from openedu_builder.config import CONFIG_FILE
-from openedu_builder.plugins import plugins
 from pprint import pprint
 
-BUILD_DIR = "build"
+import yaml
+
+import openedu_builder.path_utils as path_utils
+from openedu_builder.config import CONFIG_FILE, LOG_LEVEL
+from openedu_builder.plugins import plugins
+
+BUILD_DIR = "_build"
 CWD = os.getcwd()
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 
 
@@ -19,16 +20,16 @@ def generate_plugins(stages):
     for name, config in stages.items():
         plugin = plugins[config["plugin"]]
 
-        input_dir = os.path.realpath(config.get("input", CWD))
-        if not input_dir.startswith(CWD):
+        # If not specified, default input directory to CWD
+        input_dir = os.path.realpath(config.get("input", name))
+        if not path_utils.above(CWD, input_dir):
             input_dir = CWD
         if not os.path.isdir(input_dir):
             raise ValueError(f"Input directory {input_dir} does not exist")
 
-        output_dir = os.path.realpath(
-            os.path.join(BUILD_DIR, config.get("output", name))
-        )
-        if not output_dir.startswith(BUILD_DIR):
+        # If not specified, default output directory to build/<stage_name>
+        output_dir = path_utils.real_join(BUILD_DIR, config.get("output", name))
+        if not path_utils.above(CWD, output_dir):
             output_dir = os.path.join(BUILD_DIR, name)
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
@@ -42,18 +43,19 @@ def main():
     config_file = sys.argv[1] if len(sys.argv) > 1 else CONFIG_FILE
     config = yaml.safe_load(open(config_file))
 
+    # If not specified, default build directory to _build
     BUILD_DIR = os.path.realpath(config.get("build_dir", BUILD_DIR))
-    if not BUILD_DIR.startswith(CWD):
-        BUILD_DIR = os.path.join(CWD, "build")
+    if not path_utils.above(CWD, BUILD_DIR):
+        BUILD_DIR = os.path.join(CWD, "_build")
     if not os.path.exists(BUILD_DIR):
         os.mkdir(BUILD_DIR)
 
     # Should be ordered as of Python 3.7
     stages = {name: config[name] for name in config["stages"]}
     for plugin in generate_plugins(stages):
-        # os.chdir(CWD)
         plugin.run()
         os.chdir(CWD)
+
 
 if __name__ == "__main__":
     main()

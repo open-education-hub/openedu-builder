@@ -2,9 +2,10 @@ import logging
 import os
 import shutil
 import subprocess
-from jinja2 import Environment, PackageLoader
 from typing import Any, Mapping
 
+from jinja2 import Environment, PackageLoader
+from openedu_builder import path_utils
 from openedu_builder.plugins.plugin import Plugin, PluginRunError
 
 log = logging.getLogger(__name__)
@@ -15,6 +16,10 @@ AUTO_SIDEBAR = """const sidebars = {{
 }};
 
 module.exports = sidebars;
+"""
+DOCS_ONLY_FRONTMATTER = "---\nslug: /\n---\n"
+DUMMY_INTRO = """# Introduction
+This is a dummy introduction page required by Docusaurus. Please provide your own introduction page in the `structure` option of the `docusaurus` plugin.
 """
 
 
@@ -39,6 +44,10 @@ class DocusaurusPlugin(Plugin):
         AUTO_SIDEBAR = AUTO_SIDEBAR.format(sidebar=self.sidebar_name)
         self._parse_sidebar_options()
 
+        self.config_template_args = self._parse_config_options()
+
+        self.docs_only = config.get("docs_only", True)
+
         if config.get("init_command") is not None:
             self.init_command = config["init_command"]
 
@@ -51,9 +60,9 @@ class DocusaurusPlugin(Plugin):
                     "sidebar_location", f"{self.input_dir}/sidebar.js"
                 )
             case "js":
-                pass
+                self.sidebar_template_args = self._parse_sidebar_template()
 
-    def _render_js_sidebar(self):
+    def _parse_sidebar_template(self):
         sidebar_template_args = {}
 
         structure = self.config["structure"]
@@ -83,64 +92,16 @@ class DocusaurusPlugin(Plugin):
                 continue
             content.append(parse_structure(k, v))
 
-        from pprint import pprint
-
-        pprint(content)
-
-        sidebar_template_args["docs_only"] = self.config.get("docs_only", True)
+        sidebar_template_args["docs_only"] = self.docs_only
         sidebar_template_args["content"] = content
         sidebar_template_args["sidebar_name"] = self.sidebar_name
 
-        env = Environment(
-            loader=PackageLoader("openedu_builder.plugins", "docusaurus_templates")
-        )
-        config_template = env.get_template("sidebar.jinja2")
-        return config_template.render(**sidebar_template_args)
+        return sidebar_template_args
 
-    def _create_sidebar(self):
-        os.chdir(self.course_name)
-
-        match self.sidebar:
-            case "auto":
-                with open("sidebars.js", "w") as f:
-                    f.write(AUTO_SIDEBAR)
-            case "custom":
-                # TODO copy file
-                pass
-            case "js":
-                with open("sidebars.js", "w") as f:
-                    f.write(self._render_js_sidebar())
-
-        os.chdir("..")
-
-    def _copy_assets(self):
-        os.chdir(self.course_name)
-
-        from pprint import pprint
-
-        if self.config.get("static_assets") is not None:
-            for asset in self.config["static_assets"]:
-                pprint(asset)
-                asset_path = os.path.join(self.input_dir, asset)
-                pprint(asset_path)
-                if os.path.isdir(asset_path):
-                    pprint(asset.split(os.path.sep)[-1])
-                    shutil.copytree(
-                        asset_path,
-                        os.path.join("static", asset.split(os.path.sep)[-1]),
-                        dirs_exist_ok=True,
-                    )
-                else:
-                    shutil.copy(asset_path, "static")
-
-        os.chdir("..")
-
-    def _create_config(self):
-        os.chdir(self.course_name)
-
+    def _parse_config_options(self):
         config_template_args = {}
 
-        config_template_args["docs_only"] = self.config.get("docs_only", True)
+        config_template_args["docs_only"] = self.docs_only
 
         config_template_args["course_name"] = self.course_name
         config_template_args["logo"] = self.config.get("logo")
@@ -155,19 +116,53 @@ class DocusaurusPlugin(Plugin):
         ]
         config_template_args["copyright_string"] = self.config.get("copyright_string")
 
+        return config_template_args
+
+    def _create_sidebar(self):
+        match self.sidebar:
+            case "auto":
+                with open("sidebars.js", "w") as f:
+                    f.write(AUTO_SIDEBAR)
+            case "custom":
+                # TODO copy file
+                pass
+            case "js":
+                with open("sidebars.js", "w") as f:
+                    f.write(self._render_js_sidebar())
+
+    def _render_js_sidebar(self):
+        env = Environment(
+            loader=PackageLoader("openedu_builder.plugins", "docusaurus_templates")
+        )
+        config_template = env.get_template("sidebar.jinja2")
+        return config_template.render(**self.sidebar_template_args)
+
+    def _copy_assets(self):
+        if self.config.get("static_assets") is not None:
+            for asset in self.config["static_assets"]:
+                # self.input_dor is absolute
+                asset_path = os.path.join(self.input_dir, asset)
+                if os.path.isdir(asset_path):
+                    shutil.copytree(
+                        asset_path,
+                        path_utils.real_join(
+                            self.docusaurus_dir, "static", asset.split(os.path.sep)[-1]
+                        ),
+                        dirs_exist_ok=True,
+                    )
+                else:
+                    shutil.copy(asset_path, "static")
+
+    def _create_config(self):
         env = Environment(
             loader=PackageLoader("openedu_builder.plugins", "docusaurus_templates")
         )
         config_template = env.get_template("config.jinja2")
 
         with open("docusaurus.config.js", "w") as f:
-            f.write(config_template.render(**config_template_args))
-
-        os.chdir("..")
+            f.write(config_template.render(**self.config_template_args))
 
     def _organize_files(self):
-        os.chdir(self.input_dir)
-
         def parse_structure(k, v, path=""):
             retval = []
             path += k + "/"
@@ -189,51 +184,60 @@ class DocusaurusPlugin(Plugin):
             v = list(item.values())[0]
 
             if k == "Introduction":
-                to_copy.extend([(parse_structure(k, v)[0][0], "intro.md")])
+                src = parse_structure(k, v)[0][0]
+                src = path_utils.real_join(self.input_dir, src)
+                dst = path_utils.real_join(self.docusaurus_dir, "docs", "intro.md")
+                to_copy.extend([(src, dst)])
                 continue
 
-            to_copy.extend(parse_structure(k, v))
-
-        from pprint import pprint
-
-        pprint(to_copy)
+            src, dst = parse_structure(k, v)
+            src = path_utils.real_join(self.input_dir, src)
+            dst = path_utils.real_join(self.docusaurus_dir, "docs", dst)
+            to_copy.extend((src, dst))
 
         for src, dest in to_copy:
-            final_dst = os.path.join(self.output_dir, self.course_name, "docs", dest)
-            os.makedirs(final_dst, exist_ok=True)
-            shutil.copytree(src, final_dst, dirs_exist_ok=True)
+            os.makedirs(dest, exist_ok=True)
+            shutil.copytree(src, dest, dirs_exist_ok=True)
 
-        os.chdir(self.output_dir)
+    def _create_intro(self):
+        # self.output_dir is absolute
+        intro_path = os.path.join(self.docusaurus_dir, "docs", "intro.md")
+        if not os.path.exists(intro_path):
+            with open(intro_path, "w") as f:
+                if self.docs_only:
+                    f.write(DOCS_ONLY_FRONTMATTER)
+                f.write(DUMMY_INTRO)
 
     def run(self):
-        # Create appropriate files for auto generated sidebar
-        # Create links to the files in the sidebar
-        # Run docusaurus build
         if self.config.get("structure") is None:
             raise PluginRunError("structure option is required for this plugin")
-
-        from pprint import pprint
-
-        pprint(self.config["structure"])
+        logging.debug(f"Structure:\n {self.config['structure']}")
 
         # Run init command
         os.chdir(self.output_dir)
-        subprocess.run(self.init_command)
+        p = subprocess.run(self.init_command, capture_output=True)
+        if p.returncode != 0:
+            log.error(f"Command {self.init_command} failed with code {p.returncode}")
+            log.error(f"STDOUT: {p.stdout.decode('utf-8')}")
+            log.error(f"STDERR: {p.stderr.decode('utf-8')}")
+            raise PluginRunError(f"Error while running init command")
 
+        self.docusaurus_dir = path_utils.real_join(self.output_dir, self.course_name)
         # Folders we need to delete:
         # - blog
         try:
-            shutil.rmtree(os.path.join(self.output_dir, self.course_name, "blog"))
+            shutil.rmtree(path_utils.real_join(self.docusaurus_dir, "blog"))
         except FileNotFoundError:
-            log.info("Blog folder already removed")
-
+            log.warn("Blog folder already removed")
+        # - delete and recreate docs
         try:
-            shutil.rmtree(os.path.join(self.output_dir, self.course_name, "docs"))
+            shutil.rmtree(path_utils.real_join(self.docusaurus_dir, "docs"))
         except FileNotFoundError:
-            log.info("Docs folder already removed")
+            log.warn("Docs folder already removed")
 
-        os.mkdir(os.path.join(self.output_dir, self.course_name, "docs"))
+        os.mkdir(path_utils.real_join(self.docusaurus_dir, "docs"))
 
+        os.chdir(self.docusaurus_dir)
         # Files we need to edit:
         # - docusaurus.config.js
         self._create_config()
@@ -247,28 +251,17 @@ class DocusaurusPlugin(Plugin):
         self._copy_assets()
 
         # Create dummy intro if user did not provide one
-        if not os.path.exists(
-            os.path.join(self.output_dir, self.course_name, "docs", "intro.md")
-        ):
-            with open(
-                os.path.join(self.output_dir, self.course_name, "docs", "intro.md"), "w"
-            ) as f:
-                if self.config.get("docs_only", True):
-                    f.write("""---
-slug: /
----
-""")
-                f.write(
-                    """# Introduction
-This is a dummy introduction page required by Docusaurus. Please provide your own introduction page in the `structure` option of the `docusaurus` plugin.
-"""
-                )
+        self._create_intro()
 
-        os.chdir(self.course_name)
-        if self.config.get("docs_only", True):
+        if self.docs_only:
             try:
                 os.remove("src/pages/index.js")
             except FileNotFoundError:
                 log.info("index.js already removed")
 
-        subprocess.run(self.build_command)
+        p = subprocess.run(self.build_command, capture_output=True)
+        if p.returncode != 0:
+            log.error(f"Command {self.build_command} failed with code {p.returncode}")
+            log.error(f"STDOUT: {p.stdout.decode('utf-8')}")
+            log.error(f"STDERR: {p.stderr.decode('utf-8')}")
+            raise PluginRunError(f"Error while running build command")
