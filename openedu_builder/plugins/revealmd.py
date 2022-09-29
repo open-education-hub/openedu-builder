@@ -24,7 +24,11 @@ class RevealMdPlugin(Plugin):
         for name, location in self.config["build"].items():
             # Both self.input_dir and self.output_dir are absolute
             output_dir = os.path.join(self.output_dir, name)
-            input_location = os.path.join(self.input_dir, location)
+
+            if os.path.isabs(location):
+                input_location = location
+            else:
+                input_location = os.path.join(self.input_dir, location)
 
             command = [
                 self.command,

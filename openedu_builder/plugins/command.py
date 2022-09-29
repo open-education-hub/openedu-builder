@@ -1,5 +1,6 @@
 import logging
 import os
+from posixpath import isabs
 import subprocess
 from shutil import copytree
 from typing import Any, Mapping
@@ -43,7 +44,12 @@ class CommandPlugin(Plugin):
 
         for location in self.locations:
             # self.output_dir is absolute
-            os.chdir(os.path.join(self.output_dir, location))
+            if os.path.isabs(location):
+                path = location
+            else:
+                path = os.path.join(self.output_dir, location)
+                
+            os.chdir(path)
 
             cmd = [self.config["command"], *self.config["args"]]
             log.info(f"""Running command {" ".join(cmd)}""")

@@ -141,8 +141,12 @@ class DocusaurusPlugin(Plugin):
     def _copy_assets(self):
         if self.config.get("static_assets") is not None:
             for asset in self.config["static_assets"]:
-                # self.input_dor is absolute
-                asset_path = os.path.join(self.input_dir, asset)
+                if os.path.isabs(asset):
+                    asset_path = asset
+                else:
+                    # self.input_dor is absolute
+                    asset_path = os.path.join(self.input_dir, asset)
+
                 if os.path.isdir(asset_path):
                     shutil.copytree(
                         asset_path,
@@ -193,7 +197,9 @@ class DocusaurusPlugin(Plugin):
 
             for src, dst in parse_structure(k, v):
             # src, dst = parse_structure(k, v)
-                src = path_utils.real_join(self.input_dir, src)
+                if not os.path.isabs(src):
+                    src = path_utils.real_join(self.input_dir, src)
+                    
                 dst = path_utils.real_join(self.docusaurus_dir, "docs", dst)
                 to_copy.append((src, dst))
 
