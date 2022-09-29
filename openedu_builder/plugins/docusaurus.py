@@ -190,10 +190,11 @@ class DocusaurusPlugin(Plugin):
                 to_copy.extend([(src, dst)])
                 continue
 
-            src, dst = parse_structure(k, v)
-            src = path_utils.real_join(self.input_dir, src)
-            dst = path_utils.real_join(self.docusaurus_dir, "docs", dst)
-            to_copy.extend((src, dst))
+            for src, dst in parse_structure(k, v):
+            # src, dst = parse_structure(k, v)
+                src = path_utils.real_join(self.input_dir, src)
+                dst = path_utils.real_join(self.docusaurus_dir, "docs", dst)
+                to_copy.append((src, dst))
 
         for src, dest in to_copy:
             os.makedirs(dest, exist_ok=True)
