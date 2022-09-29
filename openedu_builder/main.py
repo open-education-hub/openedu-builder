@@ -22,15 +22,15 @@ def generate_plugins(stages):
 
         # If not specified, default input directory to CWD
         input_dir = os.path.realpath(config.get("input", name))
-        if not path_utils.above(CWD, input_dir):
-            input_dir = CWD
+        # if not path_utils.above(CWD, input_dir):
+        #     input_dir = CWD
         if not os.path.isdir(input_dir):
             raise ValueError(f"Input directory {input_dir} does not exist")
 
         # If not specified, default output directory to build/<stage_name>
         output_dir = path_utils.real_join(BUILD_DIR, config.get("output", name))
-        if not path_utils.above(CWD, output_dir):
-            output_dir = os.path.join(BUILD_DIR, name)
+        # if not path_utils.above(CWD, output_dir):
+        #     output_dir = os.path.join(BUILD_DIR, name)
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
 
@@ -45,8 +45,8 @@ def main():
 
     # If not specified, default build directory to _build
     BUILD_DIR = os.path.realpath(config.get("build_dir", BUILD_DIR))
-    if not path_utils.above(CWD, BUILD_DIR):
-        BUILD_DIR = os.path.join(CWD, "_build")
+    # if not path_utils.above(CWD, BUILD_DIR):
+    #     BUILD_DIR = os.path.join(CWD, "_build")
     if not os.path.exists(BUILD_DIR):
         os.mkdir(BUILD_DIR)
 
