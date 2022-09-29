@@ -32,7 +32,8 @@ class DocusaurusPlugin(Plugin):
         self.course_name = config.get("course_name", "Course")
         self.init_command = [
             "npx",
-            "create-docusaurus@latest",
+            "-y",
+            "create-docusaurus@2.1.0",
             self.course_name,
             "classic",
         ]
