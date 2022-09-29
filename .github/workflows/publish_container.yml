@@ -23,4 +23,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ github.repository }}:${{ github.event.release.tag_name }},${{ github.repository }}:latest
+          tags: ${{ github.repository }}/openedu_builder:${{ github.event.release.tag_name }},${{ github.repository }}/openedu_builder:latest
