@@ -7,6 +7,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - uses: actions/checkout@v3
@@ -23,4 +26,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ github.repository }}/openedu_builder:${{ github.event.release.tag_name }},${{ github.repository }}/openedu_builder:latest
+          tags: ${{ github.repository }}:${{ github.event.release.tag_name }},${{ github.repository }}:latest
