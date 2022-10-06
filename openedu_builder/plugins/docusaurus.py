@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 import subprocess
+import tempfile
 from typing import Any, Mapping
 
 from jinja2 import Environment, PackageLoader
@@ -47,7 +48,6 @@ class DocusaurusPlugin(Plugin):
         self._parse_sidebar_options()
 
         self.config_template_args = self._parse_config_options()
-
 
         if config.get("init_command") is not None:
             self.init_command = config["init_command"]
@@ -144,7 +144,7 @@ class DocusaurusPlugin(Plugin):
                 if os.path.isabs(asset):
                     asset_path = asset
                 else:
-                    # self.input_dor is absolute
+                    # self.input_dir is absolute
                     asset_path = os.path.join(self.input_dir, asset)
 
                 if os.path.isdir(asset_path):
@@ -196,10 +196,9 @@ class DocusaurusPlugin(Plugin):
                 continue
 
             for src, dst in parse_structure(k, v):
-            # src, dst = parse_structure(k, v)
                 if not os.path.isabs(src):
                     src = path_utils.real_join(self.input_dir, src)
-                    
+
                 dst = path_utils.real_join(self.docusaurus_dir, "docs", dst)
                 to_copy.append((src, dst))
 
@@ -273,3 +272,15 @@ class DocusaurusPlugin(Plugin):
             log.error(f"STDOUT: {p.stdout.decode('utf-8')}")
             log.error(f"STDERR: {p.stderr.decode('utf-8')}")
             raise PluginRunError(f"Error while running build command")
+
+        # os.mkdir(path_utils.real_join(self.output_dir, "output"))
+        if not self.config.get("debug", False):
+            tmp_dir = tempfile.mkdtemp()
+            shutil.copytree(
+                path_utils.real_join(self.docusaurus_dir, "build"),
+                tmp_dir,
+                dirs_exist_ok=True,
+            )
+
+            shutil.rmtree(self.docusaurus_dir)
+            shutil.copytree(tmp_dir, self.output_dir, dirs_exist_ok=True)
