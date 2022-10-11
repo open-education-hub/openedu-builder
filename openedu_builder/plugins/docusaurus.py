@@ -138,31 +138,57 @@ class DocusaurusPlugin(Plugin):
         config_template = env.get_template("sidebar.jinja2")
         return config_template.render(**self.sidebar_template_args)
 
+    def _copy_extra_files(self):
+        extra_files = self.config.get("extra_files", [])
+        for item in extra_files:
+            if type(item) is dict:
+                src = list(item.keys())[0]
+                dst = item[src]
+            else:
+                src = item
+                dst = src.split(os.path.sep)[-1]
+
+            if os.path.isabs(dst):
+                log.error(f"Destination path {dst} in extra_files cannot be absolute")
+                raise PluginRunError(f"Destination path {dst} in extra_files cannot be absolute")
+
+            dst = path_utils.real_join(self.docusaurus_dir, dst)
+
+            if not os.path.isabs(src):
+                src = path_utils.real_join(self.input_dir, src)
+
+            if os.path.isdir(src):
+                shutil.copytree(src, dst, dirs_exist_ok=True)
+            else:
+                shutil.copy(src, dst)
+            
+
     def _copy_assets(self):
-        if self.config.get("static_assets") is not None:
-            for asset in self.config["static_assets"]:
-                dst = None
-                if type(asset) is dict:
-                    dst = list(asset.keys())[0]
-                    src = list(asset.values())[0]
-                else:
-                    src = asset
+        static_assets = self.config.get("static_assets", [])
+        for asset in self.config["static_assets"]:
+            if type(asset) is dict:
+                dst = list(asset.keys())[0]
+                src = asset[dst]
+            else:
+                src = asset
+                dst = src.split(os.path.sep)[-1]
 
-                if dst is None:
-                    dst = src.split(os.path.sep)[-1]
-                
-                dst = path_utils.real_join(self.docusaurus_dir, "static", dst)
+            if os.path.isabs(dst):
+                log.error(f"Destination path {dst} in static_assets cannot be absolute")
+                raise PluginRunError(f"Destination path {dst} in static_assets cannot be absolute")
 
-                if os.path.isabs(src):
-                    asset_path = src
-                else:
-                    # self.input_dir is absolute
-                    asset_path = os.path.join(self.input_dir, src)
+            dst = path_utils.real_join(self.docusaurus_dir, "static", dst)
 
-                if os.path.isdir(asset_path):
-                    shutil.copytree(asset_path, dst, dirs_exist_ok=True)
-                else:
-                    shutil.copy(asset_path, dst)
+            if os.path.isabs(src):
+                asset_path = src
+            else:
+                # self.input_dir is absolute
+                asset_path = path_utils.real_join(self.input_dir, src)
+
+            if os.path.isdir(asset_path):
+                shutil.copytree(asset_path, dst, dirs_exist_ok=True)
+            else:
+                shutil.copy(asset_path, dst)
 
     def _create_config(self):
         env = Environment(
@@ -259,6 +285,8 @@ class DocusaurusPlugin(Plugin):
 
         # Copy or link documentation in the right place
         self._organize_files()
+
+        self._copy_extra_files()
 
         # Copy extra static assets and files
         self._copy_assets()
