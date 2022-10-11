@@ -165,7 +165,7 @@ class DocusaurusPlugin(Plugin):
 
     def _copy_assets(self):
         static_assets = self.config.get("static_assets", [])
-        for asset in self.config["static_assets"]:
+        for asset in static_assets:
             if type(asset) is dict:
                 dst = list(asset.keys())[0]
                 src = asset[dst]
