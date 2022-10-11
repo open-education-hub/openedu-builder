@@ -141,22 +141,28 @@ class DocusaurusPlugin(Plugin):
     def _copy_assets(self):
         if self.config.get("static_assets") is not None:
             for asset in self.config["static_assets"]:
-                if os.path.isabs(asset):
-                    asset_path = asset
+                dst = None
+                if type(asset) is dict:
+                    dst = list(asset.keys())[0]
+                    src = list(asset.values())[0]
+                else:
+                    src = asset
+
+                if dst is None:
+                    dst = src.split(os.path.sep)[-1]
+                
+                dst = path_utils.real_join(self.docusaurus_dir, "static", dst)
+
+                if os.path.isabs(src):
+                    asset_path = src
                 else:
                     # self.input_dir is absolute
-                    asset_path = os.path.join(self.input_dir, asset)
+                    asset_path = os.path.join(self.input_dir, src)
 
                 if os.path.isdir(asset_path):
-                    shutil.copytree(
-                        asset_path,
-                        path_utils.real_join(
-                            self.docusaurus_dir, "static", asset.split(os.path.sep)[-1]
-                        ),
-                        dirs_exist_ok=True,
-                    )
+                    shutil.copytree(asset_path, dst, dirs_exist_ok=True)
                 else:
-                    shutil.copy(asset_path, "static")
+                    shutil.copy(asset_path, dst)
 
     def _create_config(self):
         env = Environment(
