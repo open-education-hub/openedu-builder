@@ -30,6 +30,7 @@ class DocusaurusPlugin(Plugin):
 
         super().__init__(input_dir, output_dir, config)
 
+        self.intro = False
         self.course_name = config.get("course_name", "Course")
         self.init_command = [
             "npx",
@@ -86,12 +87,16 @@ class DocusaurusPlugin(Plugin):
             return retval
 
         content = []
+        self.intro = False
         for item in structure:
             k = list(item.keys())[0]
             v = list(item.values())[0]
             if k == "Introduction":
-                continue
+                self.intro = True
             content.append(parse_structure(k, v))
+
+        if not self.intro:
+            content.append({"title": "Introduction", "id": "intro"})
 
         sidebar_template_args["docs_only"] = self.docs_only
         sidebar_template_args["content"] = content
@@ -109,11 +114,12 @@ class DocusaurusPlugin(Plugin):
         config_template_args["logo_dark"] = self.config.get("logo_dark")
 
         config_template_args["config_meta"] = self.config.get("config_meta", {})
-        config_template_args["config_socials"] = self.config.get("config_socials", {})
+        config_template_args["config_socials"] = self.config.get("config_socials")
         config_template_args["categories"] = [
             list(x.keys())[0]
             for x in self.config.get("structure", {})
-            if list(x.keys())[0] != "Introduction"
+            if isinstance(x[list(x.keys())[0]], list)
+            # if list(x.keys())[0] != "Introduction"
         ]
         config_template_args["copyright_string"] = self.config.get("copyright_string")
 
@@ -150,7 +156,9 @@ class DocusaurusPlugin(Plugin):
 
             if os.path.isabs(dst):
                 log.error(f"Destination path {dst} in extra_files cannot be absolute")
-                raise PluginRunError(f"Destination path {dst} in extra_files cannot be absolute")
+                raise PluginRunError(
+                    f"Destination path {dst} in extra_files cannot be absolute"
+                )
 
             dst = path_utils.real_join(self.docusaurus_dir, dst)
 
@@ -161,7 +169,6 @@ class DocusaurusPlugin(Plugin):
                 shutil.copytree(src, dst, dirs_exist_ok=True)
             else:
                 shutil.copy(src, dst)
-            
 
     def _copy_assets(self):
         static_assets = self.config.get("static_assets", [])
@@ -175,7 +182,9 @@ class DocusaurusPlugin(Plugin):
 
             if os.path.isabs(dst):
                 log.error(f"Destination path {dst} in static_assets cannot be absolute")
-                raise PluginRunError(f"Destination path {dst} in static_assets cannot be absolute")
+                raise PluginRunError(
+                    f"Destination path {dst} in static_assets cannot be absolute"
+                )
 
             dst = path_utils.real_join(self.docusaurus_dir, "static", dst)
 
@@ -220,13 +229,6 @@ class DocusaurusPlugin(Plugin):
             k = list(item.keys())[0]
             v = list(item.values())[0]
 
-            if k == "Introduction":
-                src = parse_structure(k, v)[0][0]
-                src = path_utils.real_join(self.input_dir, src)
-                dst = path_utils.real_join(self.docusaurus_dir, "docs", "intro.md")
-                to_copy.extend([(src, dst)])
-                continue
-
             for src, dst in parse_structure(k, v):
                 if not os.path.isabs(src):
                     src = path_utils.real_join(self.input_dir, src)
@@ -234,23 +236,29 @@ class DocusaurusPlugin(Plugin):
                 dst = path_utils.real_join(self.docusaurus_dir, "docs", dst)
                 to_copy.append((src, dst))
 
-        for src, dest in to_copy:
-            os.makedirs(dest, exist_ok=True)
-            shutil.copytree(src, dest, dirs_exist_ok=True)
+        for src, dst in to_copy:
+            if os.path.isdir(src):
+                os.makedirs(dst, exist_ok=True)
+                shutil.copytree(src, dst, dirs_exist_ok=True)
+            else:
+                os.makedirs(dst, exist_ok=True)
+                shutil.copy(src, dst)
 
     def _create_intro(self):
         # self.output_dir is absolute
         intro_path = os.path.join(self.docusaurus_dir, "docs", "intro.md")
-        if not os.path.exists(intro_path):
+        if ((not self.intro) and self.sidebar == "js") or (not os.path.exists(intro_path)):
             with open(intro_path, "w") as f:
                 if self.docs_only:
                     f.write(DOCS_ONLY_FRONTMATTER)
                 f.write(DUMMY_INTRO)
 
     def run(self):
-        if self.config.get("structure") is None:
-            raise PluginRunError("structure option is required for this plugin")
-        logging.debug(f"Structure:\n {self.config['structure']}")
+        if self.config.get("structure") is None and self.sidebar == "js":
+            raise PluginRunError(
+                "structure option is required for this plugin when using js sidebar"
+            )
+        logging.debug(f"Structure:\n {self.config.get('structure')}")
 
         # Run init command
         os.chdir(self.output_dir)
@@ -283,8 +291,9 @@ class DocusaurusPlugin(Plugin):
         # - sidebars.js
         self._create_sidebar()
 
-        # Copy or link documentation in the right place
-        self._organize_files()
+        if self.config.get("structure") is not None:
+            # Copy or link documentation in the right place
+            self._organize_files()
 
         self._copy_extra_files()
 

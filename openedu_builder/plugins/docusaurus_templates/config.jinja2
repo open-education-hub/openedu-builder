@@ -35,7 +35,7 @@ const config = {
         title: '{{ course_name }}',
         logo: {
           alt: 'Logo',
-          {% if logo %}src: '{{ logo }}',{% else %}src: 'img/logo.svg'{% endif %}
+          {% if logo %}src: '{{ logo }}',{% else %}src: 'img/logo.svg',{% endif %}
           {% if logo_dark %}srcDark: '{{ logo_dark }}',{% endif %}
         },
         items: [
@@ -56,6 +56,7 @@ const config = {
       footer: {
         style: 'dark',
         links: [
+          {% if config_socials %}
           {
             title: 'Community',
             items: [
@@ -66,6 +67,7 @@ const config = {
               {% endfor %}
             ],
           },
+          {% endif %}
         ],
         copyright: `Copyright © ${new Date().getFullYear()} {{ copyright_string }}`,
       },

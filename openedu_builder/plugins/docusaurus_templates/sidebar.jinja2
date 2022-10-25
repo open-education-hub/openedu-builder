@@ -26,7 +26,6 @@
 /** @type {import('@docusaurus/plugin-content-docs').SidebarsConfig} */
 const sidebars = {
   {{ sidebar_name }}: [
-    'intro',
 {% for item in content -%}
 {{ render_item(item)|indent(4, True) }}
 {%- endfor %}
