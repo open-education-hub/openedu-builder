@@ -1,3 +1,9 @@
+---
+slug: /
+title: Introduction
+sidebar_position: 1
+---
+
 # Open Education Builder
 
 This project's goal is to provide a simple, yet powerful way to reorganize, transform and output 
@@ -25,6 +31,12 @@ To install the builder as a command line tool, run the following commands:
 poetry build
 pip install dist/*.whl
 ```
+
+If the output of your build is a static website you can use a Python server
+```bash
+python3 -m http.server 8080
+```
+then visit http://localhost:8080 to view your content.
 
 ### Docker container
 You can build the container using the included Dockerfile, or you can pull the published images

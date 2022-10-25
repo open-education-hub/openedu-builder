@@ -10,7 +10,7 @@ The plugin copies the entire content of the `input_dir` in the `output_dir` befo
 | --- | --- | --- | --- | --- |
 | `locations` | list[str] | `false` | `[]` | The locations to run the command in, relative to the input directory. |
 | `command` | str | `true` | `N\A` | The command to run. |
-| `args` | list[str] | `false` | `[]` | The arguments to pass to the command, similar to how they are passed to `subprocess.run`. |
+| `args` | list[str] | `false` | `[]` | The arguments to pass to the command, similar to how they are passed to `subprocess.run` in Python. |
 
 Example: 
 ```yaml

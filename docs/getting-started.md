@@ -51,6 +51,7 @@ The `ENTRYPOINT` should always be `oe_builder`. The `WORKDIR` can be whatever yo
 ## Configuration
 
 The main configuration options are as follows:
+
 | option | type | required | default | description |
 | --- | --- | --- | --- | --- |
 | `stages` | list[str] | `true` | `N\A` | The list of stages to run, in order. |
