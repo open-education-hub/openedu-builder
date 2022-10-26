@@ -247,7 +247,7 @@ class DocusaurusPlugin(Plugin):
     def _create_intro(self):
         # self.output_dir is absolute
         intro_path = os.path.join(self.docusaurus_dir, "docs", "intro.md")
-        if ((not self.intro) and self.sidebar == "js") or (not os.path.exists(intro_path)):
+        if ((not self.intro) and self.sidebar == "js") and (not os.path.exists(intro_path)):
             with open(intro_path, "w") as f:
                 if self.docs_only:
                     f.write(DOCS_ONLY_FRONTMATTER)
@@ -258,7 +258,7 @@ class DocusaurusPlugin(Plugin):
             raise PluginRunError(
                 "structure option is required for this plugin when using js sidebar"
             )
-        logging.debug(f"Structure:\n {self.config.get('structure')}")
+        # logging.debug(f"Structure:\n {self.config.get('structure')}")
 
         # Run init command
         os.chdir(self.output_dir)
