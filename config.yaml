@@ -1,0 +1,29 @@
+stages:
+  - docusaurus
+
+output_type: last
+build_dir: /build
+output_dir: /output
+
+docusaurus:
+  plugin: docusaurus
+  options:
+    course_name: Open Education Builder
+    sidebar: auto
+    extra_files:
+      - docs/: docs/
+      - README.md: docs/intro.md
+      - assets/logo.svg: static/img/logo.svg
+      - assets/logo_dark.svg: static/img/logo_dark.svg
+      - assets/favicon.ico: static/img/favicon.ico
+    logo: img/logo.svg
+    logo_dark: img/logo_dark.svg
+    config_meta:
+      title: Open Education Builder
+      url: http://localhost/
+      baseUrl: /openedu_builder/
+      onBrokenLinks: warn
+      onBrokenMarkdownLinks: warn
+      favicon: img/favicon.ico
+    copyright_string: <a href="http://www.upb.ro">University POLITEHNICA of Bucharest<a/>. Built with <a href="https://docusaurus.io/">Docusaurus</a>.
+    docs_only: true
