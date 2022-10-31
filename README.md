@@ -90,7 +90,7 @@ embed_reveal:
 docusaurus:
   plugin: docusaurus
   options:
-    course_name: SO
+    course_name: Example Course
     sidebar: js
     structure:
       - Lecture:
