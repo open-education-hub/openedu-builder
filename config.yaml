@@ -21,7 +21,7 @@ docusaurus:
     config_meta:
       title: Open Education Builder
       url: http://localhost/
-      baseUrl: /openedu_builder
+      baseUrl: /openedu_builder/
       onBrokenLinks: warn
       onBrokenMarkdownLinks: warn
       favicon: img/favicon.ico
