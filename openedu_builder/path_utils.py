@@ -12,3 +12,6 @@ def above(limit: str, *paths: str) -> bool:
     
 def real_join(*paths: str) -> str:
     return os.path.realpath(os.path.join(*paths))
+
+def stem(path: str) -> str:
+    return os.path.splitext(os.path.basename(path))[0]

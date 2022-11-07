@@ -32,6 +32,7 @@ class DocusaurusPlugin(Plugin):
 
         self.intro = False
         self.course_name = config.get("course_name", "Course")
+        self.docusaurus_dir = path_utils.real_join(self.output_dir, self.course_name)
         self.init_command = [
             "npx",
             "-y",
@@ -62,47 +63,7 @@ class DocusaurusPlugin(Plugin):
                     "sidebar_location", f"{self.input_dir}/sidebar.js"
                 )
             case "js":
-                self.sidebar_template_args = self._parse_sidebar_template()
-
-    def _parse_sidebar_template(self):
-        sidebar_template_args = {}
-
-        structure = self.config["structure"]
-
-        def parse_structure(k, v, path=""):
-            retval = {}
-            retval["title"] = k
-
-            path += k + "/"
-
-            if isinstance(v, list):
-                retval["children"] = []
-                for x in v:
-                    retval["children"].append(
-                        parse_structure(list(x.keys())[0], list(x.values())[0], path)
-                    )
-            else:
-                retval["id"] = path + v.get("name", "index")
-
-            return retval
-
-        content = []
-        self.intro = False
-        for item in structure:
-            k = list(item.keys())[0]
-            v = list(item.values())[0]
-            if k == "Introduction":
-                self.intro = True
-            content.append(parse_structure(k, v))
-
-        if not self.intro:
-            content.append({"title": "Introduction", "id": "intro"})
-
-        sidebar_template_args["docs_only"] = self.docs_only
-        sidebar_template_args["content"] = content
-        sidebar_template_args["sidebar_name"] = self.sidebar_name
-
-        return sidebar_template_args
+                self._parse_structure()
 
     def _parse_config_options(self):
         config_template_args = {}
@@ -119,7 +80,7 @@ class DocusaurusPlugin(Plugin):
             list(x.keys())[0]
             for x in self.config.get("structure", {})
             if isinstance(x[list(x.keys())[0]], list)
-            # if list(x.keys())[0] != "Introduction"
+            or isinstance(x[list(x.keys())[0]], dict)
         ]
         config_template_args["copyright_string"] = self.config.get("copyright_string")
 
@@ -142,7 +103,14 @@ class DocusaurusPlugin(Plugin):
             loader=PackageLoader("openedu_builder.plugins", "docusaurus_templates")
         )
         config_template = env.get_template("sidebar.jinja2")
-        return config_template.render(**self.sidebar_template_args)
+
+        sidebar_template_args = {
+            "docs_only": self.docs_only,
+            "sidebar_name": self.sidebar_name,
+            "content": self.structure["sidebar"],
+        }
+
+        return config_template.render(**sidebar_template_args)
 
     def _copy_extra_files(self):
         extra_files = self.config.get("extra_files", [])
@@ -209,33 +177,7 @@ class DocusaurusPlugin(Plugin):
             f.write(config_template.render(**self.config_template_args))
 
     def _organize_files(self):
-        def parse_structure(k, v, path=""):
-            retval = []
-            path += k + "/"
-
-            if not isinstance(v, list):
-                retval.append((v["location"], path))
-            else:
-                for x in v:
-                    retval.extend(
-                        parse_structure(list(x.keys())[0], list(x.values())[0], path)
-                    )
-
-            return retval
-
-        structure = self.config["structure"]
-        to_copy = []
-        for item in structure:
-            k = list(item.keys())[0]
-            v = list(item.values())[0]
-
-            for src, dst in parse_structure(k, v):
-                if not os.path.isabs(src):
-                    src = path_utils.real_join(self.input_dir, src)
-
-                dst = path_utils.real_join(self.docusaurus_dir, "docs", dst)
-                to_copy.append((src, dst))
-
+        to_copy = self.structure["to_copy"]
         for src, dst in to_copy:
             if os.path.isdir(src):
                 os.makedirs(dst, exist_ok=True)
@@ -247,18 +189,117 @@ class DocusaurusPlugin(Plugin):
     def _create_intro(self):
         # self.output_dir is absolute
         intro_path = os.path.join(self.docusaurus_dir, "docs", "intro.md")
-        if ((not self.intro) and self.sidebar == "js") and (not os.path.exists(intro_path)):
+        if ((not self.intro) and self.sidebar == "js") and (
+            not os.path.exists(intro_path)
+        ):
             with open(intro_path, "w") as f:
                 if self.docs_only:
                     f.write(DOCS_ONLY_FRONTMATTER)
                 f.write(DUMMY_INTRO)
+
+    def _parse_structure(self):
+        structure = self.config.get("structure", {})
+
+        to_copy = set()
+        sidebar = []
+
+        def _parse_copy(
+            structure,
+            src_path=os.getcwd(),
+            dst_path=os.path.join(self.docusaurus_dir, "docs"),
+        ):
+            if isinstance(structure, list):
+                for item in structure:
+                    _parse_copy(item, src_path, dst_path)
+            elif isinstance(structure, dict):
+                for k, v in structure.items():
+                    if isinstance(v, str):
+                        _dst_path = os.path.join(dst_path, os.path.dirname(k))
+                        to_copy.add((path_utils.real_join(src_path, v), _dst_path))
+                    elif isinstance(v, dict):
+                        _dst_path = os.path.join(dst_path, k)
+                        _src_path = path_utils.real_join(src_path, v.get("path", ""))
+                        for extra in v.get("extra", []):
+                            to_copy.add(
+                                (
+                                    path_utils.real_join(_src_path, extra),
+                                    path_utils.real_join(_dst_path, extra),
+                                )
+                            )
+
+                        _parse_copy(v.get("subsections", []), _src_path, _dst_path)
+
+                    elif isinstance(v, list):
+                        _dst_path = os.path.join(dst_path, k)
+                        _parse_copy(v, src_path, _dst_path)
+                    else:
+                        raise PluginRunError(f"Invalid structure! Key: {k}, Value: {v}")
+            else:
+                raise PluginRunError(
+                    f"This shouldn't happend! Invalid structure! Value: {structure}"
+                )
+
+        _parse_copy(structure)
+
+        def _parse_sidebar(k, v, path=""):
+            retval = {}
+
+            if dir := os.path.dirname(k):
+                retval["title"] = dir
+            else:
+                retval["title"] = k
+
+            retval["id"] = path + k
+            if isinstance(v, list):
+                _path = f"{path}{k}/"
+                retval["children"] = []
+                for item in v:
+                    retval["children"].append(
+                        _parse_sidebar(
+                            list(item.keys())[0], list(item.values())[0], _path
+                        )
+                    )
+            elif isinstance(v, dict):
+                _path = f"{path}{k}/"
+                retval["children"] = []
+                for item in v["subsections"]:
+                    retval["children"].append(
+                        _parse_sidebar(
+                            list(item.keys())[0], list(item.values())[0], _path
+                        )
+                    )
+            elif isinstance(v, str):
+                if path_component := os.path.dirname(k):
+                    path += f"{path_component}/"
+                if stem := path_utils.stem(v):
+                    id = f"{path}{stem}"
+                elif stem := path_utils.stem(k):
+                    id = f"{path}{stem}"
+                else:
+                    id = f"{path}README"
+
+                retval["id"] = id
+
+            return retval
+
+        for item in structure:
+            k = list(item.keys())[0]
+            v = list(item.values())[0]
+            if k == "Introduction":
+                self.intro = True
+            sidebar.append(_parse_sidebar(k, v))
+
+        self.structure = {
+            "raw": structure,
+            "to_copy": to_copy,
+            "sidebar": sidebar,
+        }
 
     def run(self):
         if self.config.get("structure") is None and self.sidebar == "js":
             raise PluginRunError(
                 "structure option is required for this plugin when using js sidebar"
             )
-        # logging.debug(f"Structure:\n {self.config.get('structure')}")
 
         # Run init command
         os.chdir(self.output_dir)
@@ -269,7 +310,6 @@ class DocusaurusPlugin(Plugin):
             log.error(f"STDERR: {p.stderr.decode('utf-8')}")
             raise PluginRunError(f"Error while running init command")
 
-        self.docusaurus_dir = path_utils.real_join(self.output_dir, self.course_name)
         # Folders we need to delete:
         # - blog
         try:
@@ -293,7 +333,9 @@ class DocusaurusPlugin(Plugin):
 
         if self.config.get("structure") is not None:
             # Copy or link documentation in the right place
+            # self._parse_structure()
             self._organize_files()
+            # self._resolve_links()
 
         self._copy_extra_files()
 
