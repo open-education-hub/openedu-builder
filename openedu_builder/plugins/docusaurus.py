@@ -1,9 +1,11 @@
 import logging
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 from typing import Any, Mapping
+from urllib.parse import unquote
 
 from jinja2 import Environment, PackageLoader
 from openedu_builder import path_utils
@@ -244,10 +246,10 @@ class DocusaurusPlugin(Plugin):
         def _parse_sidebar(k, v, path=""):
             retval = {}
 
-            if dir := os.path.dirname(k):
-                retval["title"] = dir
-            else:
-                retval["title"] = k
+            # if dir := os.path.dirname(k):
+            #     retval["title"] = unquote(dir)
+            # else:
+            retval["title"] = unquote(k.strip("/"))
 
             retval["id"] = path + k
             if isinstance(v, list):
@@ -295,11 +297,122 @@ class DocusaurusPlugin(Plugin):
             "sidebar": sidebar,
         }
 
+    def _resolve_links(self):
+        # Create mappings
+        src_to_dst = {}
+        dst_to_src = {}
+
+        for src, dst in self.structure["to_copy"]:
+            _src, _dst = src.rstrip("/"), dst.rstrip("/")
+            if os.path.isfile(src) and os.path.isdir(_dst):
+                _dst = os.path.join(_dst, os.path.basename(src))
+
+            src_to_dst[_src] = _dst
+            dst_to_src[_dst] = _src
+
+        log.debug(src_to_dst)
+        log.debug(dst_to_src)
+
+        md_link_regex = re.compile(r"\[.*?\]\((\.(?:\.)?\/.*?)\)")
+
+        dst_files = []
+
+        def _walk_struct(structure):
+            if children := structure.get("children"):
+                for child in children:
+                    _walk_struct(child)
+            else:
+                dst_files.append(structure.get("id"))
+
+        for item in self.structure["sidebar"]:
+            _walk_struct(item)
+
+        log.debug(dst_files)
+
+        for file in dst_files:
+            # Replace relative links in markdown files that have been moved,
+            # using the src_to_dst and dst_to_src directory mappings.
+            # File is already at the destination location. src_to_dst and dst_to_src
+            # contain mappings of directories that have been moved.
+            _file = os.path.join(self.docusaurus_dir, "docs", file + ".md")
+            if not os.path.exists(_file):
+                _file = os.path.join(self.docusaurus_dir, "docs", file + ".mdx")
+
+            log.debug(f"Trying to open {_file}")
+
+            if _nfile := dst_to_src.get(_file):
+                src_dir = os.path.dirname(_nfile)
+            else:
+                src_dir = dst_to_src[os.path.dirname(_file)]
+            dst_dir = os.path.dirname(_file)
+
+            _possible_src = sorted(
+                src_to_dst.keys(),
+                key=lambda x: len(x.strip("/").split(os.path.sep)),
+                reverse=True,
+            )
+
+            if os.path.exists(_file):
+                with open(_file, "r") as f:
+                    content = f.read()
+
+                for match in re.finditer(md_link_regex, content):
+                    src_link = match.group(1)
+                    log.info(f"Found link {src_link}")
+                    # dst_link = src_to_dst[path_utils.real_join(src_dir, src_link)]
+                    # dst_link = os.path.relpath(dst_dir, dst_link)
+                    src_ref = path_utils.real_join(src_dir, src_link)
+                    log.debug(f"Link {src_link} refers to {src_ref}")
+                    try:
+                        _src_ref = next(
+                            x for x in _possible_src if src_ref.startswith(x)
+                        )
+                        src_ref_dir = (
+                            os.path.dirname(_src_ref)
+                            if os.path.isfile(_src_ref)
+                            else _src_ref
+                        )
+                        log.debug(f"File {src_ref} found under {src_ref_dir}")
+                    except StopIteration:
+                        log.warning(
+                            f"Couldn't find {src_ref} in source files. Perhaps you didn't copy it? Skipping link {src_link}."
+                        )
+                        continue
+
+                    _dst_ref = src_to_dst[_src_ref]
+                    dst_ref_dir = (
+                        os.path.dirname(_dst_ref)
+                        if os.path.isfile(_dst_ref)
+                        else _dst_ref
+                    )
+                    log.debug(
+                        f"File {src_ref} should be copied under {dst_ref_dir} at the destination."
+                    )
+                    dst_ref = path_utils.real_join(
+                        dst_ref_dir, src_ref.removeprefix(src_ref_dir).lstrip("/")
+                    )
+                    log.debug(
+                        f"File {src_ref} should be copied to {dst_ref} at the destination."
+                    )
+                    dst_link = os.path.relpath(dst_ref, dst_dir)
+                    log.info(f"New link should be {dst_link}")
+
+                    content = content.replace(src_link, dst_link)
+
+                with open(_file, "w") as f:
+                    f.write(content)
+
     def run(self):
         if self.config.get("structure") is None and self.sidebar == "js":
             raise PluginRunError(
                 "structure option is required for this plugin when using js sidebar"
             )
+
+        self._parse_structure()
+
+        log.debug(self.structure["raw"])
+        log.debug(self.structure["to_copy"])
+        log.debug(self.structure["sidebar"])
 
         # Run init command
         os.chdir(self.output_dir)
@@ -335,7 +448,7 @@ class DocusaurusPlugin(Plugin):
             # Copy or link documentation in the right place
             # self._parse_structure()
             self._organize_files()
-            # self._resolve_links()
+            self._resolve_links()
 
         self._copy_extra_files()
 
