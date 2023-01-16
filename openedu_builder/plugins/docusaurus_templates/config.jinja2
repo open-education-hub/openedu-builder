@@ -3,6 +3,10 @@
 
 const lightCodeTheme = require('prism-react-renderer/themes/github');
 const darkCodeTheme = require('prism-react-renderer/themes/dracula');
+{% if math -%}
+const math = require('remark-math');
+const katex = require('rehype-katex');
+{%- endif %}
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -19,6 +23,10 @@ const config = {
           routeBasePath: '/',
           {% endif -%}
           sidebarPath: require.resolve('./sidebars.js'),
+          {%- if math %}
+          remarkPlugins: [math],
+          rehypePlugins: [katex],
+          {%- endif %}
         },
         blog: false,
         theme: {
@@ -27,6 +35,18 @@ const config = {
       }),
     ],
   ],
+
+  {%- if math %}
+  stylesheets: [
+    {
+      href: 'https://cdn.jsdelivr.net/npm/katex@0.13.24/dist/katex.min.css',
+      type: 'text/css',
+      integrity:
+        'sha384-odtC+0UGzzFL/6PNoE8rX/SPcQDXBJ+uRepguP4QkPCm2LBxH3FA3y+fKSiJ+AmM',
+      crossorigin: 'anonymous',
+    },
+  ],
+  {% endif -%}
 
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */

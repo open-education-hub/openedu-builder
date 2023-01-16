@@ -85,6 +85,7 @@ class DocusaurusPlugin(Plugin):
             or isinstance(x[list(x.keys())[0]], dict)
         ]
         config_template_args["copyright_string"] = self.config.get("copyright_string")
+        config_template_args["math"] = self.config.get("math", False)
 
         return config_template_args
 
@@ -463,6 +464,22 @@ class DocusaurusPlugin(Plugin):
                 os.remove("src/pages/index.js")
             except FileNotFoundError:
                 log.info("index.js already removed")
+
+        if self.config.get("math", False):
+            math_command = [
+                "npm",
+                "install",
+                "--save",
+                "remark-math@3",
+                "rehype-katex@5",
+                "hast-util-is-element@1.1.0",
+            ]
+            p = subprocess.run(math_command, capture_output=True)
+            if p.returncode != 0:
+                log.error(f"Command {math_command} failed with code {p.returncode}")
+                log.error(f"STDOUT: {p.stdout.decode('utf-8')}")
+                log.error(f"STDERR: {p.stderr.decode('utf-8')}")
+                raise PluginRunError(f"Error while installing math dependencies command")
 
         p = subprocess.run(self.build_command, capture_output=True)
         if p.returncode != 0:
