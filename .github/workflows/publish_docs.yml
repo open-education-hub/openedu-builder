@@ -24,7 +24,7 @@ jobs:
           file: ./repo/Dockerfile.docs
           push: false
           load: true
-          tags: openedu_builder/docs:latest
+          tags: openedu-builder/docs:latest
           cache-from: type=gha
           cache-to: type=gha
 
@@ -32,7 +32,7 @@ jobs:
         run: |
           mkdir output
           docker image list
-          docker run -v $GITHUB_WORKSPACE/repo:/content -v $GITHUB_WORKSPACE/output:/output openedu_builder/docs:latest
+          docker run -v $GITHUB_WORKSPACE/repo:/content -v $GITHUB_WORKSPACE/output:/output openedu-builder/docs:latest
       # Popular action to deploy to GitHub Pages:
       # Docs: https://github.com/peaceiris/actions-gh-pages#%EF%B8%8F-docusaurus
       - name: Deploy to GitHub Pages

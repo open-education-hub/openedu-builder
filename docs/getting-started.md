@@ -25,7 +25,7 @@ The builder is designed to be extensible. It comes with a few plugins, but the u
 Most plugins will have a set of dependencies that need to be installed in order to run. The builder does not install these dependencies. The recommended way to install these dependencies is to create a Docker container that extends the builder container and installs the dependencies. The example below installs the dependencies needed to run the revealmd and docusaurus plugins.
 
 ```dockerfile
-FROM ghcr.io/open-education-hub/openedu_builder:latest
+FROM ghcr.io/open-education-hub/openedu-builder:latest
 
 # Install curl
 RUN apt-get update && \

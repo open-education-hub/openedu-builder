@@ -19,8 +19,8 @@ This project uses Poetry for dependency management. To install Poetry follow the
 
 Once Poetry is installed, clone this repo and run `poetry install` to install the dependencies.
 ```bash
-git clone https://github.com/open-education-hub/openedu_builder
-cd openedu_builder
+git clone https://github.com/open-education-hub/openedu-builder
+cd openedu-builder
 poetry install
 ```
 To start using the builder run `poetry shell` to activate the virtual environment and get access to 
@@ -42,7 +42,7 @@ then visit http://localhost:8080 to view your content.
 You can build the container using the included Dockerfile, or you can pull the published images
 using the following command:
 ```bash
-docker pull ghcr.io/open-education-hub/openedu_builder:latest
+docker pull ghcr.io/open-education-hub/openedu-builder:latest
 ```
 
 Note that the container only contains the builder, and not the dependencies for the plugins. The
