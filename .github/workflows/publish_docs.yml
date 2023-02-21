@@ -3,7 +3,13 @@ name: Open Education Builder - Github Page
 on:
   push:
     branches:
-      - main # Set a branch to deploy
+      - main
+    paths:
+      - 'docs/**'
+      - 'assets/**'
+      - README.md
+      - config.yaml
+      - Dockerfile.docs
 
 jobs:
   deploy:
