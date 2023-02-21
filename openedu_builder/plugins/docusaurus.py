@@ -51,7 +51,10 @@ class DocusaurusPlugin(Plugin):
         AUTO_SIDEBAR = AUTO_SIDEBAR.format(sidebar=self.sidebar_name)
         self._parse_sidebar_options()
 
-        self.config_template_args = self._parse_config_options()
+        if config.get("config_meta") is not None:
+            self.config_template_args = self._parse_config_options()
+        else:
+            self.config_template_args = None
 
         if config.get("init_command") is not None:
             self.init_command = config["init_command"]
@@ -441,7 +444,8 @@ class DocusaurusPlugin(Plugin):
         os.chdir(self.docusaurus_dir)
         # Files we need to edit:
         # - docusaurus.config.js
-        self._create_config()
+        if self.config_template_args is not None:
+            self._create_config()
         # - sidebars.js
         self._create_sidebar()
 
