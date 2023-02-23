@@ -226,10 +226,13 @@ class DocusaurusPlugin(Plugin):
                         _dst_path = os.path.join(dst_path, k)
                         _src_path = path_utils.real_join(src_path, v.get("path", ""))
                         for extra in v.get("extra", []):
+                            extra = extra.rstrip(os.path.sep)
                             to_copy.add(
                                 (
                                     path_utils.real_join(_src_path, extra),
-                                    path_utils.real_join(_dst_path, extra),
+                                    path_utils.real_join(
+                                        _dst_path, path_utils.stem(extra)
+                                    ),
                                 )
                             )
 
@@ -483,7 +486,9 @@ class DocusaurusPlugin(Plugin):
                 log.error(f"Command {math_command} failed with code {p.returncode}")
                 log.error(f"STDOUT: {p.stdout.decode('utf-8')}")
                 log.error(f"STDERR: {p.stderr.decode('utf-8')}")
-                raise PluginRunError(f"Error while installing math dependencies command")
+                raise PluginRunError(
+                    f"Error while installing math dependencies command"
+                )
 
         p = subprocess.run(self.build_command, capture_output=True)
         if p.returncode != 0:
