@@ -12,6 +12,8 @@ slug: /
 ---
 ```
 
+Regardless of how you organize your files, Markdown links to files should still work after the Docusaurus structure is created, if you copied the files you are linking to. This is due to a step in the build process that looks for links and resolves them to the final destination.
+
 A small level of familiarity with docusaurus is recommended in order to use this plugin.
 
 ## Options
@@ -22,7 +24,7 @@ A small level of familiarity with docusaurus is recommended in order to use this
 | `sidebar_location` | str | `false` | `$input_dir/sidebar.js` | The location of the `sidebar.js` file to use if `sidebar` is set to `custom`. |
 | `sidebar_name` | str | `false` | `sidebar` | Sidebar name to use inside the `sidebar.js` file. |
 | `docs_only` | bool | `false` | `true` | Switch for the docusaurus [docs only mode](https://docusaurus.io/docs/docs-introduction/#docs-only-mode). |
-| `structure` | list[Mapping[str, Any]] | `true` | `N\A` | The structure of the course. This is used to generate the sidebar. Leaf nodes are identified by the presence of the `location` and `name` attributes. |
+| `structure` | see below (Structure section) | `true` | `N\A` | The structure of the course. This is used to generate the sidebar. Leaf nodes are identified by the presence of the `location` and `name` attributes. |
 | `static_assets` | list[str] | `false` | `[]` | A list of static assets to copy to the `static` directory under the docusaurus build directory. |
 | `extra_files` | list[str] | `false` | `[]` | A list of extra files to copy to the docusaurus build directory. |
 | `config_meta` | Mapping[str, str] | `false` | `N\A` | The metadata to add to the docusaurus `docusaurus.config.js` file. |
@@ -46,16 +48,20 @@ docusaurus:
     sidebar_name: example_sidebar
     structure:
       - Lecture:
-        - Compute:
-            name: Compute
-            location: /path/to/lectures/Compute
-        - Data:
-            name: README
-            location: /path/to/lectures/Data
+          path: /build/embed_reveal
+          subsections:
+            - Compute: Compute/Compute.mdx
+            - Data: Data/Data.mdx
       - Lab:
         - Compute:
-            location: path/to/chapters/Compute/lab
-            name: README
+            path: content/chapters/compute/lab/content
+            extra: 
+              - ../media
+              - ../quiz
+            subsections:
+              - Overview: overview.md
+              - Benchmarks: benchmarks.md
+              - Processes: processes.md
     static_assets:
       - Compute: /path/to/content/chapters/compute/lecture/_site
       - Data: /path/to/content/chapters/data/lecture/_site
@@ -74,3 +80,176 @@ docusaurus:
 ```
 
 Note that this is a complex example. Usually, most of the parameters can be ommited, relying on the default values.
+
+## Structure
+
+The `structure` option is complex and will be explained with examples in this section. 
+
+For the examples below we have the folowing directory structure in our repository:
+```
+content
+└── chapters
+    └── compute
+        └── lab
+            ├── content
+            │   ├── benchmarks.md
+            │   ├── overview.md
+            │   └── processes.md
+            ├── media
+            │   ├── pic1.jpeg
+            │   ├── pic2.svg
+            │   ├── pic3.svg
+            │   ├── pic4.svg
+            │   └── pic5.svg
+            ├── quiz
+            │   ├── quiz1.md
+            │   ├── quiz2.md
+            │   └── quiz3.md
+            └── solution
+                └── stuff-we-do-not-need-here
+```
+We want to turn this into the following sidebar in docusaurus:
+```
+Labs
+└── Compute
+    ├── Overview
+    ├── Benchmarks
+    └── Processes
+```
+The directory structure under docusaurus will look like this:
+```
+docs
+└── Labs
+    └── Compute
+        ├── media
+        ├── quiz
+        ├── overview.md
+        ├── processes.md
+        └── benchmarks.md
+```
+
+At its core, the `structure` option is just a list of sidebar elements. Categories/chapters are identified by the presence of children, via the `subsections` key, or by simply specifying the subchapters as a list. The following 2 examples are equivalent in meaning.
+
+```
+docusaurus:
+  plugin: docusaurus
+  options: 
+    structure:
+      - Compute:
+          subsections:
+            - Overview: overview.md
+            - Benchmarks: benchmarks.md
+            - Processes: processes.md
+
+```
+
+```
+docusaurus:
+  plugin: docusaurus
+  options: 
+    structure:
+      - Compute:
+          - Overview: overview.md
+          - Benchmarks: benchmarks.md
+          - Processes: processes.md
+```
+Using the first option, while longer, is necessary when you want to specify extra files to copy in the directory of a chapter/section (the `extra` option), or when you use the `path` option (more below).
+
+In the example above, `- Overview: overview.md` represents a content page that will be rendered by docusaurus. The path of `overview.md` is relative to the root of the repository unless otherwise specified.
+
+If your documents have a folder-like structure (like the one at the begging of the section), you need to specify the full path, as seen in this example: 
+```
+docusaurus:
+  plugin: docusaurus
+  options: 
+    structure:
+      - Compute:
+          subsections:
+            - Overview: content/chapters/compute/lab/content/overview.md
+            - Benchmarks: content/chapters/compute/lab/content/benchmarks.md
+            - Processes: content/chapters/compute/lab/content/processes.md
+```
+In order to avoid this kind of repetition that makes it hard to read the config file, the `path` option can be used on any subsection to group a common set of files.
+```
+docusaurus:
+  plugin: docusaurus
+  options: 
+    structure:
+      - Compute:
+          path: content/chapters/compute/lab/content
+          subsections:
+            - Overview: overview.md
+            - Benchmarks: benchmarks.md
+            - Processes: processes.md
+```
+The path you specify in the `path` option will be prepended to any of the values that represent paths under this section. You can also specify more `path` options down the line and they will be glued together.
+```
+docusaurus:
+  plugin: docusaurus
+  options: 
+    structure:
+      - Compute:
+          path: path1
+          subsections:
+            - More Content:
+                path: path2
+                subsections:
+                  - Overview: overview.md
+```
+In the example above, the path to the Overview page will be `path1/path2/overview.md`.
+
+For media and other files you might include in your documents, you can use the `extra` key to copy them in the folder of a section, like so:
+```
+docusaurus:
+  plugin: docusaurus
+  options: 
+    structure:
+      - Compute:
+          path: content/chapters/compute/lab/content
+          extra: 
+            - ../media
+            - ../quiz
+          subsections:
+            - Overview: overview.md
+            - Benchmarks: benchmarks.md
+            - Processes: processes.md
+```
+Note that this is also affected by the `path` variable, the original location of the `media` directory being `content/chapters/compute/lab/media`, hence the `..`, representing the parent directory.
+
+Leaf nodes (rendered pages based on your content) will always have the form `k: v`, where `v` is a string. These have a few particularities.
+
+The key (`k`) is, most of the time just a string representing the title of a sidebar element. It can also take the following forms:
+  - `Title/index_file_without_extension`
+  - `Title/` (default index file will be README.md)
+
+The value (`v`) is, most of the time a string, representing the path to the file that will be rendered. It can also be the path to a directory with multiple files. In this case, `k` needs to have one of the two forms above to specify which file will be rendered. Rewriting our example using this syntax looks like this:
+```
+docusaurus:
+  plugin: docusaurus
+  options: 
+    structure:
+      - Compute:
+          path: content/chapters/compute/lab
+          extra: 
+            - media
+            - quiz
+          subsections:
+            - Overview/overview.md: content/
+            - Benchmarks/benchmarks.md: content/
+            - Processes/processes.md: content/
+```
+This will also generate a different docusaurus structure:
+```
+docs
+└── Labs
+    └── Compute
+        ├── media
+        ├── quiz
+        ├── Overview
+        │   └── overview.md
+        ├── Processes
+        │   └── processes.md
+        └── Benchmarks
+            └── benchmarks.md
+```
+Because of the special syntax for `k`, if you want to use `/` in the name of a section, you will need to URL encode it, using `%2F` instead.
