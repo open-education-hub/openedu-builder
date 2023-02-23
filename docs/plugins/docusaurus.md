@@ -33,6 +33,7 @@ A small level of familiarity with docusaurus is recommended in order to use this
 | `logo` | str | `false` | `N\A` | The logo to use for the docusaurus site. If not specified, the default docusaurus logo will be used. |
 | `logo_dark` | str | `false` | `N\A` | The dark logo to use for the docusaurus site. If not specified, the default docusaurus logo will be used. |
 | `debug` | bool | `false` | `false` | Whether to keep the docusaurus build directory alongside the built output. |
+| `math` | bool | `false` | `false` | Whether math equation support should be included in the build. |
 
 Example:
 
