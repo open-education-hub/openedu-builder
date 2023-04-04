@@ -402,6 +402,10 @@ class DocusaurusPlugin(Plugin):
                         f"File {src_ref} should be copied to {dst_ref} at the destination."
                     )
                     dst_link = os.path.relpath(dst_ref, dst_dir)
+                    if " " in dst_link:
+                        dst_link = f"<{dst_link}>"
+                        # Temporary fix until https://github.com/facebook/docusaurus/issues/8867 gets fixed
+                        dst_link = dst_link.replace(".md", "")
                     log.info(f"New link should be {dst_link}")
 
                     content = content.replace(src_link, dst_link)
