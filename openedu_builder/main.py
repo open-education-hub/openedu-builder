@@ -1,5 +1,7 @@
+import json
 import logging
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -13,6 +15,7 @@ from openedu_builder.plugins import plugins
 
 BUILD_DIR = tempfile.mkdtemp()
 OUTPUT_DIR = "/output"
+OUTPUT_DIRS = {}
 CWD = os.getcwd()
 
 logging.basicConfig(level=LOG_LEVEL)
@@ -28,12 +31,21 @@ def generate_plugins(stages):
         if not os.path.isdir(input_dir):
             raise ValueError(f"Input directory {input_dir} does not exist")
 
+        output_dir = OUTPUT_DIRS[name]
+
+        yield plugin(input_dir, output_dir, config=config.get("options", {}))
+
+
+def parse_output_dirs(stages):
+    global OUTPUT_DIRS
+
+    for name, config in stages.items():
         # If not specified, default output directory to build/<stage_name>
         output_dir = path_utils.real_join(BUILD_DIR, config.get("output", name))
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
 
-        yield plugin(input_dir, output_dir, config=config.get("options", {}))
+        OUTPUT_DIRS[name] = output_dir
 
 
 def main():
@@ -42,6 +54,7 @@ def main():
 
     config_file = sys.argv[1] if len(sys.argv) > 1 else CONFIG_FILE
     config = yaml.safe_load(open(config_file))
+    pprint(config)
 
     # If not specified, default build directory to a temporary directory
     BUILD_DIR = os.path.realpath(config.get("build_dir", BUILD_DIR))
@@ -56,6 +69,19 @@ def main():
 
     # Should be ordered as of Python 3.7
     stages = {name: config[name] for name in config["stages"]}
+
+    # Parse output directories and save them for replacements
+    parse_output_dirs(stages)
+
+    # serialize the config to a string and replace $$output_dir$$ with the actual output directory
+    serialized_config = json.dumps(config)
+    serialized_config = re.sub(
+        r"\$\$(.*?)\$\$", lambda m: OUTPUT_DIRS[m.group(1)], serialized_config
+    )
+    config = json.loads(serialized_config)
+
+    stages = {name: config[name] for name in config["stages"]}
+
     for plugin in generate_plugins(stages):
         plugin.run()
         os.chdir(CWD)
