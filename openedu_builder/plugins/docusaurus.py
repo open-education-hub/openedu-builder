@@ -1,3 +1,4 @@
+import itertools
 import logging
 import os
 import re
@@ -321,6 +322,7 @@ class DocusaurusPlugin(Plugin):
         log.debug(dst_to_src)
 
         md_link_regex = re.compile(r"\[.*?\]\((\.(?:\.)?\/.*?)\)")
+        iframe_link_regex = re.compile(r"<iframe.*?src=\"(\.(?:\.)?\/.*?)\".*?>")
 
         dst_files = []
 
@@ -363,7 +365,10 @@ class DocusaurusPlugin(Plugin):
                 with open(_file, "r") as f:
                     content = f.read()
 
-                for match in re.finditer(md_link_regex, content):
+                for match in itertools.chain(
+                    re.finditer(md_link_regex, content),
+                    re.finditer(iframe_link_regex, content),
+                ):
                     src_link = match.group(1)
                     log.info(f"Found link {src_link}")
                     # dst_link = src_to_dst[path_utils.real_join(src_dir, src_link)]
@@ -432,7 +437,7 @@ class DocusaurusPlugin(Plugin):
             log.error(f"Command {self.init_command} failed with code {p.returncode}")
             log.error(f"STDOUT: {p.stdout.decode('utf-8')}")
             log.error(f"STDERR: {p.stderr.decode('utf-8')}")
-            raise PluginRunError(f"Error while running init command")
+            raise PluginRunError("Error while running init command")
 
         # Folders we need to delete:
         # - blog
@@ -490,16 +495,14 @@ class DocusaurusPlugin(Plugin):
                 log.error(f"Command {math_command} failed with code {p.returncode}")
                 log.error(f"STDOUT: {p.stdout.decode('utf-8')}")
                 log.error(f"STDERR: {p.stderr.decode('utf-8')}")
-                raise PluginRunError(
-                    f"Error while installing math dependencies command"
-                )
+                raise PluginRunError("Error while installing math dependencies command")
 
         p = subprocess.run(self.build_command, capture_output=True)
         if p.returncode != 0:
             log.error(f"Command {self.build_command} failed with code {p.returncode}")
             log.error(f"STDOUT: {p.stdout.decode('utf-8')}")
             log.error(f"STDERR: {p.stderr.decode('utf-8')}")
-            raise PluginRunError(f"Error while running build command")
+            raise PluginRunError("Error while running build command")
 
         # os.mkdir(path_utils.real_join(self.output_dir, "output"))
         if not self.config.get("debug", False):
