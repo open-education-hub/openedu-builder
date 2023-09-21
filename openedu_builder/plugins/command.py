@@ -1,6 +1,5 @@
 import logging
 import os
-from posixpath import isabs
 import subprocess
 from shutil import copytree
 from typing import Any, Mapping

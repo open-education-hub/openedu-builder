@@ -56,7 +56,7 @@ docusaurus:
       - Lab:
         - Compute:
             path: content/chapters/compute/lab/content
-            extra: 
+            extra:
               - ../media
               - ../quiz
             subsections:
@@ -84,7 +84,7 @@ Note that this is a complex example. Usually, most of the parameters can be ommi
 
 ## Structure
 
-The `structure` option is complex and will be explained with examples in this section. 
+The `structure` option is complex and will be explained with examples in this section.
 
 For the examples below we have the folowing directory structure in our repository:
 ```
@@ -131,10 +131,10 @@ docs
 
 At its core, the `structure` option is just a list of sidebar elements. Categories/chapters are identified by the presence of children, via the `subsections` key, or by simply specifying the subchapters as a list. The following 2 examples are equivalent in meaning.
 
-```
+```yaml
 docusaurus:
   plugin: docusaurus
-  options: 
+  options:
     structure:
       - Compute:
           subsections:
@@ -144,10 +144,10 @@ docusaurus:
 
 ```
 
-```
+```yaml
 docusaurus:
   plugin: docusaurus
-  options: 
+  options:
     structure:
       - Compute:
           - Overview: overview.md
@@ -158,11 +158,11 @@ Using the first option, while longer, is necessary when you want to specify extr
 
 In the example above, `- Overview: overview.md` represents a content page that will be rendered by docusaurus. The path of `overview.md` is relative to the root of the repository unless otherwise specified.
 
-If your documents have a folder-like structure (like the one at the begging of the section), you need to specify the full path, as seen in this example: 
-```
+If your documents have a folder-like structure (like the one at the begging of the section), you need to specify the full path, as seen in this example:
+```yaml
 docusaurus:
   plugin: docusaurus
-  options: 
+  options:
     structure:
       - Compute:
           subsections:
@@ -171,10 +171,10 @@ docusaurus:
             - Processes: content/chapters/compute/lab/content/processes.md
 ```
 In order to avoid this kind of repetition that makes it hard to read the config file, the `path` option can be used on any subsection to group a common set of files.
-```
+```yaml
 docusaurus:
   plugin: docusaurus
-  options: 
+  options:
     structure:
       - Compute:
           path: content/chapters/compute/lab/content
@@ -184,10 +184,10 @@ docusaurus:
             - Processes: processes.md
 ```
 The path you specify in the `path` option will be prepended to any of the values that represent paths under this section. You can also specify more `path` options down the line and they will be glued together.
-```
+```yaml
 docusaurus:
   plugin: docusaurus
-  options: 
+  options:
     structure:
       - Compute:
           path: path1
@@ -200,14 +200,14 @@ docusaurus:
 In the example above, the path to the Overview page will be `path1/path2/overview.md`.
 
 For media and other files you might include in your documents, you can use the `extra` key to copy them in the folder of a section, like so:
-```
+```yaml
 docusaurus:
   plugin: docusaurus
-  options: 
+  options:
     structure:
       - Compute:
           path: content/chapters/compute/lab/content
-          extra: 
+          extra:
             - ../media
             - ../quiz
           subsections:
@@ -224,14 +224,14 @@ The key (`k`) is, most of the time just a string representing the title of a sid
   - `Title/` (default index file will be README.md)
 
 The value (`v`) is, most of the time a string, representing the path to the file that will be rendered. It can also be the path to a directory with multiple files. In this case, `k` needs to have one of the two forms above to specify which file will be rendered. Rewriting our example using this syntax looks like this:
-```
+```yaml
 docusaurus:
   plugin: docusaurus
-  options: 
+  options:
     structure:
       - Compute:
           path: content/chapters/compute/lab
-          extra: 
+          extra:
             - media
             - quiz
           subsections:
