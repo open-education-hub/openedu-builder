@@ -10,6 +10,8 @@ packages = [{include = "openedu_builder"}]
 python = "^3.10"
 PyYAML = "^6.0"
 Jinja2 = "^3.1.2"
+Markdown = {extras = ["hilite"], version = "^3.4.3"}
+requests = "^2.31.0"
 
 [tool.poetry.scripts]
 oe_builder = 'openedu_builder.main:main'
@@ -21,3 +23,6 @@ black = "^22.6.0"
 [build-system]
 requires = ["poetry-core=1.2.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
