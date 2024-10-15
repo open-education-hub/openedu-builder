@@ -33,6 +33,8 @@ class DocusaurusPlugin(Plugin):
 
         super().__init__(input_dir, output_dir, config)
 
+        os.chdir(self.input_dir)
+
         self.intro = False
         self.course_name = config.get("course_name", "Course")
         self.docusaurus_dir = path_utils.real_join(self.output_dir, self.course_name)
