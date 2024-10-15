@@ -58,7 +58,7 @@ class QuizifyPlugin(Plugin):
         os.chdir(self.output_dir)
 
         # Identify all the files that need to be processed
-        files = itertools.chain.from_iterable([glob.iglob(x) for x in self.locations])
+        files = itertools.chain.from_iterable([glob.iglob(x, recursive=True) for x in self.locations])
 
         for file in files:
             log.info(f"Processing {file}")
