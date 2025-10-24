@@ -12,7 +12,11 @@
     {%- for answer in answers %}
     <li class="list-group-item choice">
       <div class="form-check">
+        {% if answers_ids | length > 1 %}
+        <input class="form-check-input" type="checkbox" name="flexCheckDefault" id="{{ answer.id }}">
+        {% else %}
         <input class="form-check-input" type="radio" name="flexRadioDefault" id="{{ answer.id }}">
+        {% endif %}
         <label class="form-check-label" for="{{ answer.id }}">
           {{ answer.text }}
         </label>
@@ -22,8 +26,8 @@
   </ul>
   <div class="card-footer">
     <div class="text-center" style="padding: 5px;">
-      <button class="check btn btn-primary" type="button" onclick="console.log('Clickedcheck');answerIndex='{{ answer_id }}';document.getElementsByClassName('check')[0].classList.add('disabled');choices=document.getElementsByClassName('choice');for(i=0;i<choices.length;i++){radio=choices[i].firstElementChild.firstElementChild;radio.disabled=true;if(radio.checked){if(radio.id===answerIndex){choices[i].classList.add('list-group-item-success');document.getElementsByClassName('feedback')[0].classList.remove('d-none');var savTop=parent.document.documentElement.scrollTop;document.getElementsByClassName('feedback')[0].scrollIntoView(false);parent.document.documentElement.scrollTop=savTop;}else{choices[i].classList.add('list-group-item-danger');}}}">Check Answer </button>
-      <button class="reset btn btn-default" type="button" onclick="console.log('Clickedreset');document.getElementsByClassName('check')[0].classList.remove('disabled');choices=document.getElementsByClassName('choice');for(i=0;i<choices.length;i++){radio=choices[i].firstElementChild.firstElementChild;radio.disabled=false;choices[i].classList.remove('list-group-item-success');choices[i].classList.remove('list-group-item-danger');radio.checked=false;}document.getElementsByClassName('feedback')[0].classList.add('d-none');var savTop=parent.document.documentElement.scrollTop;document.getElementsByClassName('card')[0].scrollIntoView(false);parent.document.documentElement.scrollTop=savTop;">Try Again</button>
+      <button class="check btn btn-primary" type="button" onclick='console.log("Clickedcheck");answersIds={{ answers_ids | tojson }};document.getElementsByClassName("check")[0].classList.add("disabled");choices=document.getElementsByClassName("choice");var correctAnswersCount=0;var wrongAnswersCount=0;for(i=0;i<choices.length;i++){choice=choices[i].firstElementChild.firstElementChild;choice.disabled=true;if(choice.checked){if(answersIds.includes(choice.id)){choices[i].classList.add("list-group-item-success");correctAnswersCount++;}else{choices[i].classList.add("list-group-item-danger");wrongAnswersCount++;}}}if(correctAnswersCount==answersIds.length&&wrongAnswersCount==0){document.getElementsByClassName("feedback")[0].classList.remove("d-none");var savTop=parent.document.documentElement.scrollTop;document.getElementsByClassName("feedback")[0].scrollIntoView(false);parent.document.documentElement.scrollTop=savTop;}'>Check Answer </button>
+      <button class="reset btn btn-default" type="button" onclick='console.log("Clickedreset");document.getElementsByClassName("check")[0].classList.remove("disabled");choices=document.getElementsByClassName("choice");for(i=0; i<choices.length; i++){choice=choices[i].firstElementChild.firstElementChild;choice.disabled=false;choices[i].classList.remove("list-group-item-success");choices[i].classList.remove("list-group-item-danger");choice.checked=false;}document.getElementsByClassName("feedback")[0].classList.add("d-none");var savTop=parent.document.documentElement.scrollTop;document.getElementsByClassName("card")[0].scrollIntoView(false);parent.document.documentElement.scrollTop=savTop;'>Try Again</button>
     </div>
   </div>
 </div>

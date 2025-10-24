@@ -111,7 +111,7 @@ class QuizifyPlugin(Plugin):
             # Determine how to parse the quiz content
             #   - if it's a regex, the regex will have multiple NAMED capture groups as follows:
             #     - question: the question text
-            #     - answer: the correct answer
+            #     - correct_answers[1..n] (e.g. correct_answers1, correct_answers2 etc.): the correct answers
             #     - wrong[1..n] (e.g. wrong1, wrong2 etc.): the wrong answers
             #     - (optional) feedback: the feedback for the question
             #   - if it's a python file, it will be dynamically imported. it should contain a
@@ -169,7 +169,8 @@ class QuizifyPlugin(Plugin):
 
                 log.info("Processing quiz: " + quiz["path"])
 
-                correct_id = str(uuid.uuid4())
+                correct_ids = [str(uuid.uuid4())
+                               for x in quiz["parsed"]["correct_answers"]]
 
                 template_args = {
                     "question": {
@@ -183,11 +184,15 @@ class QuizifyPlugin(Plugin):
                                 {"text": x, "id": str(uuid.uuid4())}
                                 for x in quiz["parsed"]["wrong"]
                             ],
-                            {"text": quiz["parsed"]["answer"], "id": correct_id},
+                            *[
+                                {"text": x, "id": correct_ids[i]}
+                                for (i, x) in enumerate(quiz["parsed"]["correct_answers"])
+                            ],
                         ],
-                        len(quiz["parsed"]["wrong"]) + 1,
+                        len(quiz["parsed"]["wrong"]) +
+                        len(quiz["parsed"]["correct_answers"]),
                     ),
-                    "answer_id": correct_id,
+                    "answers_ids": correct_ids,
                 }
 
                 # Pass the quiz content to the template and render it

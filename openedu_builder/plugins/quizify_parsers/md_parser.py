@@ -94,11 +94,11 @@ def parse_quiz(content, **kwargs):
 
     # answers = list(map(lambda a: marko.convert(a), answers))
     log.info(f"answers: {answers}")
-    correct_answer = md.convert([a for a in answers if a.startswith("+")][0][2:])
-    log.info(f"correct_answer: {correct_answer}")
+    correct_answers = [md.convert(a[2:]) for a in answers if a.startswith("+")]
+    log.info(f"correct_answers: {correct_answers}")
     answers = [md.convert(a[2:]) for a in answers]
 
-    wrong_answers = [a for a in answers if a != correct_answer]
+    wrong_answers = [a for a in answers if a not in correct_answers]
 
     question = re.search(question_regex, content, re.DOTALL | re.MULTILINE).group(1)
     question = md.convert(question)
@@ -119,6 +119,6 @@ def parse_quiz(content, **kwargs):
     return {
         "question": question,
         "wrong": wrong_answers,
-        "answer": correct_answer,
+        "correct_answers": correct_answers,
         "feedback": feedback,
     }
