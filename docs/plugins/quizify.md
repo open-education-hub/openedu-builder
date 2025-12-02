@@ -42,6 +42,7 @@ Is this a question?
 - this is a wrong answer
 - this is also a wrong answer
 + this is a correct answer
++ this is another correct answer
 
 ## Feedback
 
@@ -78,8 +79,15 @@ Quiz templates will receive a dictionary with the following structure as an inpu
             "text": "this is a correct answer",
             "id": "ddeb27fb-d9a0-4624-be4d-4615062daed4"
         },
+        {
+            "text": "this is another correct answer",
+            "id": "1a1e8db9-89c5-4ad0-9280-6e444e78cc17"
+        },
     ],
-    "answer_id": "ddeb27fb-d9a0-4624-be4d-4615062daed4",
+    "answer_ids": [
+        "ddeb27fb-d9a0-4624-be4d-4615062daed4",
+        "1a1e8db9-89c5-4ad0-9280-6e444e78cc17"
+    ]
 }
 ```
 
